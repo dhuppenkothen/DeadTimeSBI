@@ -23,6 +23,8 @@ from stingray.simulator.simulator import Simulator
 from stingray.events import EventList
 from stingray.io import load_events_and_gtis
 from stingray.gti import cross_gtis
+from stingray import filters
+
 
 
 import warnings
@@ -412,40 +414,41 @@ def main():
     f = 0.01 # scale factor for logarithmic binning
     
     # I will split up simulations into individual runs so they're robust to failures
-    num_sim = 5 # number of simulations per iteration
-    num_iter = 3 # number of iterations for the simulation runs
+    num_sim = 5000 # number of simulations per iteration
+    num_iter = 10 # number of iterations for the simulation runs
     
-    
+    print("Generating light curves ...")
     # generate light curves from observation
-    lca, lcb = generate_lightcurves(fits_files,dt=dt, dt_plot=dt_plot)
-    lc = lca + lcb
+    #lca, lcb = generate_lightcurves(fits_files,dt=dt, dt_plot=dt_plot)
+    #lc = lca + lcb
     
     # get the GTIs and keep only those of a certain length
-    gti_diff = lc.gti[:,1] - lc.gti[:,0]
-    gti_mask = (gti_diff > min_lc_len)
-    lc.gti = lc.gti[gti_mask]
+    #gti_diff = lc.gti[:,1] - lc.gti[:,0]
+    #gti_mask = (gti_diff > min_lc_len)
+    #lc.gti = lc.gti[gti_mask]
     
     # split list of light curves by GTI
-    lc_list = lc.split_by_gti()
+    #lc_list = lc.split_by_gti()
     
     # keep only enough of the first GTI to make the averaged PSD
-    lc1_trunc = lc_list[0].truncate(start=lc_list[0].time[0], stop=lc_list[0].time[0]+tseg_total,
-                                     method="time")
+    #lc1_trunc = lc_list[0].truncate(start=lc_list[0].time[0], stop=lc_list[0].time[0]+tseg_total,
+    #                                 method="time")
     
+    print("Making PSDs")
     # generate averaged PSD
-    aps1_trunc = AveragedPowerspectrum(lc1_trunc, segment_size=segment_size, norm="frac")
+    #aps1_trunc = AveragedPowerspectrum(lc1_trunc, segment_size=segment_size, norm="frac")
     
     # generate logbinned version of averaged PSD
-    aps1_bin = aps1_trunc.rebin_log(f=f)
+    #aps1_bin = aps1_trunc.rebin_log(f=f)
     
     # set up priors for SBI
-    rms_prior = [0.1, 0.6]
+    rms_prior = [0.1, 0.4]
     fwhm0_prior = [1.0, 10.0]
     amp1_prior = [0.5, 20.0]
-    nu1_prior = [1.0, 5.0]
+    nu1_prior = [1.5, 3.5]
     qual1_prior = [3, 100]
     amp3_prior = [0.01, 1.0]
-    meancr_prior = [20, 500]
+    meancr_prior = [20, 200]
     
     lower_bounds = torch.tensor([rms_prior[0], fwhm0_prior[0], amp1_prior[0], 
                                  nu1_prior[0], qual1_prior[0], amp3_prior[0], 
@@ -463,7 +466,7 @@ def main():
     simulation_kwargs = {"tseg":tseg_total, "dt_hires":0.0001, "dt":dt, "f":f,
                          "deadtime":0.0025, "summary_type":"avglogbin", "segment_size":segment_size}
     
-    
+    print("Setting up SBI code")
     sim_func = generate_simulator_function(**simulation_kwargs)
     
     simulator, prior = prepare_for_sbi(sim_func, prior)
@@ -472,7 +475,7 @@ def main():
     inference = SNPE(prior=prior)
     
     for i in range(num_iter):
-        print("I am on iteration %i"%i
+        print("I am on iteration %i"%i)
         theta, x = simulate_for_sbi(simulator, proposal=prior, num_simulations=num_sim)
     
         np.savetxt("grs1915_16s_15seg_theta%i.dat"%i, theta)
@@ -480,3 +483,6 @@ def main():
     
     
     return
+
+if __name__ == "__main__":
+    main()
