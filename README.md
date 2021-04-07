@@ -13,3 +13,9 @@ introduce a method for accurate parameter inference using Approximate Bayesian C
 ## Authors
 * Daniela Huppenkothen
 * Matteo Bachetti
+
+## Data
+
+The NuSTAR observation used in this project is available at [HEASARC](). Pre-recorded
+simulations to reproduce the experiments on simulated data can be downloaded from 
+[Zenodo](http://doi.org/10.5281/zenodo.4670161). 
